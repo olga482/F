@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instagram Manager - Управление постами</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🍰 Instagram Manager</h1>
+            <p>Управление постами для кондитера</p>
+        </header>
+
+        <!-- Настройки токена -->
+        <section class="settings-section" id="settingsSection">
+            <h2>⚙️ Настройки</h2>
+            <div class="form-group">
+                <label for="accessToken">Instagram Access Token:</label>
+                <input type="password" id="accessToken" placeholder="Введите ваш токен">
+            </div>
+            <div class="form-group">
+                <label for="accountId">Instagram Account ID:</label>
+                <input type="text" id="accountId" placeholder="Введите ID аккаунта">
+            </div>
+            <button onclick="saveSettings()" class="btn btn-primary">Сохранить настройки</button>
+            <div id="settingsStatus" class="status-message"></div>
+        </section>
+
+        <!-- Создание поста -->
+        <section class="post-section">
+            <h2>📝 Создать пост</h2>
+            <form id="postForm">
+                <div class="form-group">
+                    <label for="imageUrl">URL изображения:</label>
+                    <input type="url" id="imageUrl" placeholder="https://example.com/image.jpg" required>
+                    <small>Изображение должно быть доступно по публичному URL</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="caption">Описание поста:</label>
+                    <textarea id="caption" rows="5" placeholder="Напишите описание..."></textarea>
+                    <div class="char-counter">
+                        <span id="charCount">0</span> / 2200 символов
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="addHashtags" checked>
+                        Добавить хэштеги автоматически
+                    </label>
+                </div>
+
+                <div class="hashtags-preview" id="hashtagsPreview"></div>
+
+                <div class="form-group">
+                    <label>Опубликовать:</label>
+                    <div class="radio-group">
+                        <label>
+                            <input type="radio" name="publishType" value="now" checked>
+                            Сейчас
+                        </label>
+                        <label>
+                            <input type="radio" name="publishType" value="schedule">
+                            Запланировать
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group" id="scheduleGroup" style="display: none;">
+                    <label for="scheduleTime">Дата и время публикации:</label>
+                    <input type="datetime-local" id="scheduleTime">
+                </div>
+
+                <button type="submit" class="btn btn-success">Опубликовать</button>
+            </form>
+            <div id="postStatus" class="status-message"></div>
+        </section>
+
+        <!-- Запланированные посты -->
+        <section class="scheduled-section">
+            <h2>📅 Запланированные посты</h2>
+            <div id="scheduledPosts" class="posts-grid">
+                <p class="empty-state">Нет запланированных постов</p>
+            </div>
+        </section>
+
+        <!-- Опубликованные посты -->
+        <section class="published-section">
+            <h2>✅ Опубликованные посты</h2>
+            <button onclick="loadPublishedPosts()" class="btn btn-secondary">Загрузить посты</button>
+            <div id="publishedPosts" class="posts-grid">
+                <p class="empty-state">Нажмите кнопку для загрузки</p>
+            </div>
+        </section>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
