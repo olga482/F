@@ -3,98 +3,194 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Instagram Manager - Управление постами</title>
+    <title>Мой Instagram - Управление постами</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
-        <header>
-            <h1>🍰 Instagram Manager</h1>
-            <p>Управление постами для кондитера</p>
-        </header>
-
-        <!-- Настройки токена -->
-        <section class="settings-section" id="settingsSection">
-            <h2>⚙️ Настройки</h2>
-            <div class="form-group">
-                <label for="accessToken">Instagram Access Token:</label>
-                <input type="password" id="accessToken" placeholder="Введите ваш токен">
-            </div>
-            <div class="form-group">
-                <label for="accountId">Instagram Account ID:</label>
-                <input type="text" id="accountId" placeholder="Введите ID аккаунта">
-            </div>
-            <button onclick="saveSettings()" class="btn btn-primary">Сохранить настройки</button>
-            <div id="settingsStatus" class="status-message"></div>
-        </section>
-
-        <!-- Создание поста -->
-        <section class="post-section">
-            <h2>📝 Создать пост</h2>
-            <form id="postForm">
-                <div class="form-group">
-                    <label for="imageUrl">URL изображения:</label>
-                    <input type="url" id="imageUrl" placeholder="https://example.com/image.jpg" required>
-                    <small>Изображение должно быть доступно по публичному URL</small>
-                </div>
-
-                <div class="form-group">
-                    <label for="caption">Описание поста:</label>
-                    <textarea id="caption" rows="5" placeholder="Напишите описание..."></textarea>
-                    <div class="char-counter">
-                        <span id="charCount">0</span> / 2200 символов
+        <!-- Шаг 1: Первая настройка -->
+        <div id="setupScreen" class="screen active">
+            <div class="welcome-card">
+                <div class="emoji-big">👋</div>
+                <h1>Привет!</h1>
+                <p class="subtitle">Давайте настроим ваш Instagram за 2 минуты</p>
+                
+                <div class="steps">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h3>Получите токен</h3>
+                            <p>Перейдите на сайт <a href="https://developers.facebook.com" target="_blank">developers.facebook.com</a></p>
+                            <p>Создайте приложение и получите токен доступа</p>
+                        </div>
+                    </div>
+                    
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h3>Введите данные</h3>
+                            <div class="form-group">
+                                <label>Токен доступа:</label>
+                                <input type="password" id="setupToken" placeholder="Вставьте токен сюда">
+                            </div>
+                            <div class="form-group">
+                                <label>ID вашего Instagram:</label>
+                                <input type="text" id="setupAccountId" placeholder="Например: 123456789">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h3>Готово!</h3>
+                            <button onclick="completeSetup()" class="btn btn-big">Начать работу 🚀</button>
+                            <p class="help-text">Не знаете где взять токен? <a href="#" onclick="showHelp(); return false;">Подробная инструкция</a></p>
+                        </div>
                     </div>
                 </div>
+                
+                <div id="setupStatus" class="status-message"></div>
+            </div>
+        </div>
+
+        <!-- Главный экран -->
+        <div id="mainScreen" class="screen">
+            <header>
+                <h1>🍰 Мои посты в Instagram</h1>
+                <button onclick="showSettings()" class="btn-icon">⚙️</button>
+            </header>
+
+            <!-- Быстрое создание поста -->
+            <section class="quick-post">
+                <h2>Создать новый пост</h2>
+                
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">📸</div>
+                    <p>Загрузите фото вашего десерта</p>
+                    <input type="file" id="imageFile" accept="image/*" style="display: none;">
+                    <button onclick="document.getElementById('imageFile').click()" class="btn btn-primary">Выбрать фото</button>
+                    <p class="help-text">или вставьте ссылку на фото:</p>
+                    <input type="url" id="imageUrl" placeholder="https://..." class="url-input">
+                </div>
+
+                <div id="imagePreview" class="image-preview" style="display: none;">
+                    <img id="previewImg" src="" alt="Preview">
+                    <button onclick="removeImage()" class="btn-remove">✕</button>
+                </div>
 
                 <div class="form-group">
-                    <label>
+                    <label>Что расскажете о десерте?</label>
+                    <textarea id="caption" rows="4" placeholder="Например: Свежий торт Наполеон 🍰 Заказы в Direct!"></textarea>
+                    <div class="char-counter"><span id="charCount">0</span> / 2200</div>
+                </div>
+
+                <div class="hashtags-box">
+                    <label class="checkbox-label">
                         <input type="checkbox" id="addHashtags" checked>
-                        Добавить хэштеги автоматически
+                        <span>Добавить популярные хэштеги</span>
                     </label>
+                    <div id="hashtagsPreview" class="hashtags-preview"></div>
                 </div>
 
-                <div class="hashtags-preview" id="hashtagsPreview"></div>
-
-                <div class="form-group">
-                    <label>Опубликовать:</label>
-                    <div class="radio-group">
-                        <label>
-                            <input type="radio" name="publishType" value="now" checked>
-                            Сейчас
-                        </label>
-                        <label>
-                            <input type="radio" name="publishType" value="schedule">
-                            Запланировать
-                        </label>
-                    </div>
+                <div class="publish-options">
+                    <button onclick="selectPublishNow()" class="publish-btn active" id="btnNow">
+                        <div class="publish-icon">⚡</div>
+                        <div>Опубликовать сейчас</div>
+                    </button>
+                    <button onclick="selectPublishLater()" class="publish-btn" id="btnLater">
+                        <div class="publish-icon">📅</div>
+                        <div>Запланировать</div>
+                    </button>
                 </div>
 
-                <div class="form-group" id="scheduleGroup" style="display: none;">
-                    <label for="scheduleTime">Дата и время публикации:</label>
+                <div id="scheduleBox" class="schedule-box" style="display: none;">
+                    <label>Когда опубликовать?</label>
                     <input type="datetime-local" id="scheduleTime">
                 </div>
 
-                <button type="submit" class="btn btn-success">Опубликовать</button>
-            </form>
-            <div id="postStatus" class="status-message"></div>
-        </section>
+                <button onclick="publishPost()" class="btn btn-success btn-big">Готово! Опубликовать 🎉</button>
+                <div id="postStatus" class="status-message"></div>
+            </section>
 
-        <!-- Запланированные посты -->
-        <section class="scheduled-section">
-            <h2>📅 Запланированные посты</h2>
-            <div id="scheduledPosts" class="posts-grid">
-                <p class="empty-state">Нет запланированных постов</p>
-            </div>
-        </section>
+            <!-- Мои посты -->
+            <section class="my-posts">
+                <div class="section-header">
+                    <h2>📅 Запланированные посты</h2>
+                </div>
+                <div id="scheduledPosts" class="posts-grid">
+                    <div class="empty-state">
+                        <div class="emoji-big">📭</div>
+                        <p>Пока нет запланированных постов</p>
+                    </div>
+                </div>
+            </section>
 
-        <!-- Опубликованные посты -->
-        <section class="published-section">
-            <h2>✅ Опубликованные посты</h2>
-            <button onclick="loadPublishedPosts()" class="btn btn-secondary">Загрузить посты</button>
-            <div id="publishedPosts" class="posts-grid">
-                <p class="empty-state">Нажмите кнопку для загрузки</p>
+            <section class="my-posts">
+                <div class="section-header">
+                    <h2>✅ Опубликованные посты</h2>
+                    <button onclick="loadPublishedPosts()" class="btn btn-secondary">Обновить</button>
+                </div>
+                <div id="publishedPosts" class="posts-grid">
+                    <div class="empty-state">
+                        <div class="emoji-big">👆</div>
+                        <p>Нажмите "Обновить" чтобы загрузить посты</p>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- Экран настроек -->
+        <div id="settingsScreen" class="screen">
+            <div class="settings-card">
+                <button onclick="hideSettings()" class="btn-back">← Назад</button>
+                <h2>Настройки</h2>
+                
+                <div class="form-group">
+                    <label>Токен доступа:</label>
+                    <input type="password" id="accessToken" placeholder="Ваш токен">
+                </div>
+                
+                <div class="form-group">
+                    <label>ID Instagram аккаунта:</label>
+                    <input type="text" id="accountId" placeholder="ID аккаунта">
+                </div>
+                
+                <button onclick="saveSettings()" class="btn btn-primary">Сохранить</button>
+                <div id="settingsStatus" class="status-message"></div>
             </div>
-        </section>
+        </div>
+
+        <!-- Помощь -->
+        <div id="helpScreen" class="screen">
+            <div class="help-card">
+                <button onclick="hideHelp()" class="btn-back">← Назад</button>
+                <h2>Как получить токен?</h2>
+                
+                <div class="help-steps">
+                    <div class="help-step">
+                        <h3>Шаг 1: Создайте бизнес-аккаунт</h3>
+                        <p>В Instagram перейдите в настройки и переключите аккаунт на "Бизнес-аккаунт"</p>
+                    </div>
+                    
+                    <div class="help-step">
+                        <h3>Шаг 2: Подключите Facebook</h3>
+                        <p>Создайте страницу Facebook и подключите к ней ваш Instagram</p>
+                    </div>
+                    
+                    <div class="help-step">
+                        <h3>Шаг 3: Получите токен</h3>
+                        <p>Перейдите на <a href="https://developers.facebook.com" target="_blank">developers.facebook.com</a></p>
+                        <p>Создайте приложение → Instagram Graph API → Получите токен</p>
+                    </div>
+                    
+                    <div class="help-step">
+                        <h3>Нужна помощь?</h3>
+                        <p>Посмотрите видео-инструкцию на YouTube: "Как получить Instagram API токен"</p>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="app.js"></script>
