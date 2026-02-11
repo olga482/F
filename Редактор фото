@@ -1,0 +1,263 @@
+"""
+РЕДАКТОР ФОТО С СЕТКОЙ ДЛЯ ВИЗИТОК
+Все в одном файле - просто запустите!
+
+Использование:
+1. Установите: pip install Pillow
+2. Запустите: python photo_grid_all_in_one.py
+3. Результат в папке output/
+"""
+
+from PIL import Image, ImageDraw
+import os
+
+
+# ============================================
+# КЛАСС ДЛЯ СОЗДАНИЯ СЕТКИ
+# ============================================
+
+class PhotoEditor:
+    """Класс для создания фона и сетки для визиток"""
+    
+    def __init__(self, width=1080, height=1080):
+        self.width = width
+        self.height = height
+        self.image = None
+    
+    def create_floor_wall_background(self, 
+                                    wall_color=(240, 240, 245),
+                                    floor_color=(200, 180, 160),
+                                    horizon_position=0.6,
+                                    wall_image=None,
+                                    floor_image=None):
+        """Создает фон с стеной и полом"""
+        self.image = Image.new('RGB', (self.width, self.height), wall_color)
+        horizon_y = int(self.height * horizon_position)
+        
+        if wall_image:
+            wall_img = Image.open(wall_image).convert('RGB')
+            wall_img = wall_img.resize((self.width, horizon_y), Image.Resampling.LANCZOS)
+            self.image.paste(wall_img, (0, 0))
+        else:
+            draw = ImageDraw.Draw(self.image)
+            draw.rectangle([(0, 0), (self.width, horizon_y)], fill=wall_color)
+        
+        if floor_image:
+            floor_img = Image.open(floor_image).convert('RGB')
+            floor_height = self.height - horizon_y
+            floor_img = floor_img.resize((self.width, floor_height), Image.Resampling.LANCZOS)
+            self.image.paste(floor_img, (0, horizon_y))
+        else:
+            draw = ImageDraw.Draw(self.image)
+            draw.rectangle([(0, horizon_y), (self.width, self.height)], fill=floor_color)
+        
+        if not wall_image and not floor_image:
+            draw = ImageDraw.Draw(self.image)
+            for i in range(20):
+                alpha = i / 20
+                blend_color = tuple(
+                    int(wall_color[j] * (1 - alpha) + floor_color[j] * alpha)
+                    for j in range(3)
+                )
+                draw.line(
+                    [(0, horizon_y + i), (self.width, horizon_y + i)],
+                    fill=blend_color,
+                    width=1
+                )
+        
+        return self.image
+    
+    def add_grid(self, rows=3, cols=3, 
+                 grid_color=(150, 150, 150),
+                 line_width=2,
+                 margin=50):
+        """Добавляет сетку для размещения визиток"""
+        if self.image is None:
+            raise ValueError("Сначала создайте фон!")
+        
+        draw = ImageDraw.Draw(self.image)
+        work_width = self.width - 2 * margin
+        work_height = self.height - 2 * margin
+        cell_width = work_width / cols
+        cell_height = work_height / rows
+        
+        for i in range(cols + 1):
+            x = margin + i * cell_width
+            draw.line([(x, margin), (x, self.height - margin)], 
+                     fill=grid_color, width=line_width)
+        
+        for i in range(rows + 1):
+            y = margin + i * cell_height
+            draw.line([(margin, y), (self.width - margin, y)], 
+                     fill=grid_color, width=line_width)
+        
+        return self.image
+    
+    def get_cell_coordinates(self, row, col, rows=3, cols=3, margin=50):
+        """Получает координаты ячейки"""
+        work_width = self.width - 2 * margin
+        work_height = self.height - 2 * margin
+        cell_width = work_width / cols
+        cell_height = work_height / rows
+        
+        x1 = margin + col * cell_width
+        y1 = margin + row * cell_height
+        x2 = x1 + cell_width
+        y2 = y1 + cell_height
+        
+        return (int(x1), int(y1), int(x2), int(y2))
+    
+    def place_image_in_cell(self, image_path, row, col, 
+                           rows=3, cols=3, margin=50, padding=10):
+        """Размещает изображение (визитку) в ячейке"""
+        if self.image is None:
+            raise ValueError("Сначала создайте фон!")
+        
+        x1, y1, x2, y2 = self.get_cell_coordinates(row, col, rows, cols, margin)
+        card_image = Image.open(image_path)
+        
+        cell_width = x2 - x1 - 2 * padding
+        cell_height = y2 - y1 - 2 * padding
+        card_image.thumbnail((cell_width, cell_height), Image.Resampling.LANCZOS)
+        
+        paste_x = x1 + padding + (cell_width - card_image.width) // 2
+        paste_y = y1 + padding + (cell_height - card_image.height) // 2
+        
+        if card_image.mode == 'RGBA':
+            self.image.paste(card_image, (paste_x, paste_y), card_image)
+        else:
+            self.image.paste(card_image, (paste_x, paste_y))
+        
+        return self.image
+    
+    def set_background_image(self, background_path):
+        """Устанавливает готовое изображение как фон"""
+        bg_image = Image.open(background_path).convert('RGB')
+        self.image = bg_image.resize((self.width, self.height), Image.Resampling.LANCZOS)
+        return self.image
+    
+    def create_textured_background(self, texture_path, tile=True):
+        """Создает фон из текстуры"""
+        texture = Image.open(texture_path).convert('RGB')
+        
+        if tile:
+            self.image = Image.new('RGB', (self.width, self.height))
+            texture_width, texture_height = texture.size
+            
+            for y in range(0, self.height, texture_height):
+                for x in range(0, self.width, texture_width):
+                    self.image.paste(texture, (x, y))
+        else:
+            self.image = texture.resize((self.width, self.height), Image.Resampling.LANCZOS)
+        
+        return self.image
+    
+    def save(self, output_path):
+        """Сохраняет изображение"""
+        if self.image is None:
+            raise ValueError("Нет изображения для сохранения!")
+        
+        os.makedirs(os.path.dirname(output_path) if os.path.dirname(output_path) else '.', exist_ok=True)
+        self.image.save(output_path, quality=95)
+        return output_path
+    
+    def show(self):
+        """Показывает изображение"""
+        if self.image is None:
+            raise ValueError("Нет изображения!")
+        self.image.show()
+
+
+# ============================================
+# ПРИМЕРЫ ИСПОЛЬЗОВАНИЯ
+# ============================================
+
+def example_1():
+    """Пример 1: Простая сетка 3x3"""
+    print("\n📸 Пример 1: Простая сетка 3x3")
+    
+    editor = PhotoEditor(width=1080, height=1080)
+    editor.create_floor_wall_background(
+        wall_color=(245, 245, 250),
+        floor_color=(210, 180, 140),
+        horizon_position=0.5
+    )
+    editor.add_grid(rows=3, cols=3, margin=60)
+    editor.save('output/example_1_simple_grid.jpg')
+    
+    print("   ✅ Сохранено: output/example_1_simple_grid.jpg")
+
+
+def example_2():
+    """Пример 2: Сетка 2x4 с другими цветами"""
+    print("\n📸 Пример 2: Сетка 2x4 с кастомными цветами")
+    
+    editor = PhotoEditor(width=1080, height=1350)
+    editor.create_floor_wall_background(
+        wall_color=(255, 250, 240),
+        floor_color=(139, 90, 60),
+        horizon_position=0.6
+    )
+    editor.add_grid(rows=2, cols=4, margin=80, grid_color=(200, 200, 200), line_width=3)
+    editor.save('output/example_2_custom_colors.jpg')
+    
+    print("   ✅ Сохранено: output/example_2_custom_colors.jpg")
+
+
+def example_3():
+    """Пример 3: Большая сетка для Instagram Stories"""
+    print("\n📸 Пример 3: Сетка для Instagram Stories (1080x1920)")
+    
+    editor = PhotoEditor(width=1080, height=1920)
+    editor.create_floor_wall_background(
+        wall_color=(240, 235, 230),
+        floor_color=(180, 160, 140),
+        horizon_position=0.5
+    )
+    editor.add_grid(rows=4, cols=3, margin=60)
+    editor.save('output/example_3_stories.jpg')
+    
+    print("   ✅ Сохранено: output/example_3_stories.jpg")
+
+
+# ============================================
+# ГЛАВНАЯ ФУНКЦИЯ
+# ============================================
+
+def main():
+    """Главная функция - запускает все примеры"""
+    print("=" * 60)
+    print("🎨 РЕДАКТОР ФОТО С СЕТКОЙ ДЛЯ ВИЗИТОК")
+    print("=" * 60)
+    
+    try:
+        # Создаем примеры
+        example_1()
+        example_2()
+        example_3()
+        
+        print("\n" + "=" * 60)
+        print("✨ ГОТОВО! Все файлы в папке output/")
+        print("=" * 60)
+        
+        print("\n📝 КАК ИСПОЛЬЗОВАТЬ:")
+        print("   1. Откройте папку output/ и посмотрите примеры")
+        print("   2. Чтобы добавить свои фоны:")
+        print("      - Создайте папку backgrounds/")
+        print("      - Положите туда изображения")
+        print("      - Измените код: wall_image='backgrounds/wall.jpg'")
+        print("   3. Чтобы добавить визитки:")
+        print("      - Создайте папку cards/")
+        print("      - Используйте place_image_in_cell()")
+        
+        print("\n💡 СОВЕТ: Отредактируйте этот файл под свои нужды!")
+        
+    except Exception as e:
+        print(f"\n❌ ОШИБКА: {e}")
+        print("\n🔧 Убедитесь что установлена библиотека Pillow:")
+        print("   pip install Pillow")
+
+
+if __name__ == "__main__":
+    main()
+
